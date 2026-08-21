@@ -11,13 +11,14 @@ CSV_PATH = 'data/fc3d-history.csv'
 
 
 # ============ HTTP ============
-def _http_get(url, referer=None):
+def _http_get(url, referer=None, timeout=8):
+    """GET 文本。主源8s超时（快），死源兜底不拖慢全链。"""
     from urllib.request import urlopen, Request
     headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
     if referer:
         headers['Referer'] = referer
     req = Request(url, headers=headers)
-    return urlopen(req, timeout=15).read().decode('utf-8', errors='ignore')
+    return urlopen(req, timeout=timeout).read().decode('utf-8', errors='ignore')
 
 
 # ============ 各源解析（统一返回 [(issue,b,s,g,next_code), ...]） ============
@@ -64,11 +65,13 @@ def _parse_html_3d(raw):
 
 
 DATA_SOURCES = [
+    # 实测活源（2026-08-21）：灰鸟API + 17500全量txt
     {'name': 'huiniao', 'kind': 'json',
      'url': 'https://api.huiniao.top/interface/home/lotteryHistory?type=fcsd&page=1&limit=5',
      'parser': _parse_huiniao},
     {'name': '17500', 'kind': 'txt17500',
      'url': 'http://www.17500.cn/getData/3d.TXT'},
+    # 备用源（弱活：可能间歇性返回空/403，作为最后兜底）
     {'name': 'apihz', 'kind': 'json',
      'url': 'https://cn.apihz.cn/api/caipiao/fucai3d.php?id=88888888&key=88888888',
      'parser': _parse_apihz},

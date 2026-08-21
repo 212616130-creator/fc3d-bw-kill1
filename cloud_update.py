@@ -55,7 +55,7 @@ def ensure_pool(fp):
             pj = json.load(f)
         pfp = f"{pj['data_info']['n_issues']}_{pj['data_info']['last']}"
         if pfp == fp and pj.get('feat_version') == FEAT_VERSION:
-            log(f"专家池缓存命中（{fp} v{FEAT_VERSION}），跳过穷举")
+            log(f"专家池缓存命中（{fp} {FEAT_VERSION}），跳过穷举")
             return
         log(f"专家池过期（{pfp} → {fp}），重新穷举…")
     else:
