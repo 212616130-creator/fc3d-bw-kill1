@@ -1,5 +1,5 @@
-# 运行时缓存（专家池/回测结果由云端脚本按指纹自动重建）
-cache/
+# 运行时缓存：result.json 不入库（每次重算）；pool.json 入库（专家池指纹缓存，避免每次 cron 重跑穷举）
+cache/result.json
 __pycache__/
 *.pyc
 .DS_Store
