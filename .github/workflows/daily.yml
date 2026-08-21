@@ -49,6 +49,9 @@ jobs:
       - name: 运行云端更新脚本(多源降级抓取+云端追加CSV+穷举+回测+生成页面)
         run: python cloud_update.py || exit 1
 
+      - name: 云端回测审计(防未来信息,逐期对账)
+        run: python audit_backtest.py || exit 1
+
       - name: 检查是否有真实更新
         id: check
         run: |
