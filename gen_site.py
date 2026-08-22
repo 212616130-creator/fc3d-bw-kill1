@@ -264,6 +264,18 @@ def _render_bt_rows(rows):
     return out
 
 
+def _max_lose(seg):
+    """计算一段回测记录的最大连错（连续杀错期数）。seg 为近→远列表。"""
+    mx = cur = 0
+    for r in seg:                                   # 近→远遍历
+        if not r.get('hit'):
+            cur += 1
+            mx = max(mx, cur)
+        else:
+            cur = 0
+    return mx
+
+
 def _render_bt_card(sys_id, rows, sys_name, note):
     """回测表卡片：顶部 100/200/500/1000期 切换按钮 + 杀1/杀2/杀3命中率联动 + 四个窗口表格。
     sys_id ∈ {'A','B'} 用于区分两套独立切换（localStorage 各自记忆）。
@@ -280,11 +292,16 @@ def _render_bt_card(sys_id, rows, sys_name, note):
         p1 = h1 / n * 100 if n else 0
         p2 = h2 / n * 100 if n else 0
         p3 = h3 / n * 100 if n else 0
+        ml = _max_lose(seg)
         rate_html += (
             f'<div class="stat-row" id="bt-rate-{sys_id}-{W}" style="display:none">'
             f'<span>命中率（近{W}期）</span>'
             f'<span class="pct">杀1 {p1:.2f}% · 杀2 {p2:.2f}% · 杀3 {p3:.2f}%'
-            f'<span style="color:#999;font-size:12px">（{h1}/{h2}/{h3}）</span></span></div>')
+            f'<span style="color:#999;font-size:12px">（{h1}/{h2}/{h3}）</span></span></div>'
+            f'<div class="stat-row" id="bt-lose-{sys_id}-{W}" style="display:none">'
+            f'<span>最大连错（近{W}期）</span>'
+            f'<span class="pct" style="color:{"var(--red)" if ml >= 3 else "var(--green)"}">{ml} 期'
+            f'<span style="color:#999;font-size:12px">{f"⚠ 连错{ml}期" if ml >= 3 else "连错可控"}</span></span></div>')
     tbl_html = ""
     for W in wins:
         seg = rows[:W]
@@ -378,9 +395,10 @@ function switchSys(s){{
 function switchBtWin(sys, w){{
   document.querySelectorAll('.win-btn[data-sys="'+sys+'"]').forEach(b=>b.classList.toggle('active', +b.dataset.w===w));
   [100,200,500,1000].forEach(x=>{{
-    var t=document.getElementById('bt-tbl-'+sys+'-'+x), r=document.getElementById('bt-rate-'+sys+'-'+x);
+    var t=document.getElementById('bt-tbl-'+sys+'-'+x), r=document.getElementById('bt-rate-'+sys+'-'+x), l=document.getElementById('bt-lose-'+sys+'-'+x);
     if(t) t.style.display = (x===w)?'block':'none';
     if(r) r.style.display = (x===w)?'block':'none';
+    if(l) l.style.display = (x===w)?'block':'none';
   }});
   try{{localStorage.setItem('bwk_bt_'+sys, w)}}catch(e){{}}
 }}
