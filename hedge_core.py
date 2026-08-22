@@ -18,7 +18,7 @@ import numpy as np
 from engine import load_data, get_next_issue
 from formulas import feat_list, FEAT_VERSION, NF
 
-WINDOW = 500          # 回测/扫描窗口（穷举选池亦为500期，见 bruteforce500）
+WINDOW = 1000         # 回测/扫描窗口（v7_window1000：1000期真实回测，前500期为专家池未挑选的样本外段）
 WIN_GRID = (20, 25, 30, 40, 50, 60, 70, 80, 90, 100, 120, 150, 180, 200)  # 14×13×7=1274 组
 K_GRID = (6, 8, 10, 12, 16, 20, 24, 30, 36, 40, 48, 56, 64)
 GAMMA_GRID = (1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 8.0)   # 权重幂次（>1 放大强专家话语权）
@@ -28,7 +28,7 @@ PFL = 34              # 每族限选上限（7族×34≈238≈TOPK）
 BASELINE = 0.9        # 百位杀1码随机基线
 WIN_MAX = max(WIN_GRID)   # 200：特征矩阵向历史方向扩展，保证回测首期也有满窗口
 CSV = 'data/fc3d-history.csv'
-ALGO_VERSION = 'v7_window500'   # 算法版本（网格/权重函数/回测窗口变更必须升级，防缓存误用）
+ALGO_VERSION = 'v7_window1000'   # 算法版本（网格/权重函数/回测窗口变更必须升级，防缓存误用）
 
 
 # ---------------------------------------------------------------- 矩阵构建
@@ -261,7 +261,7 @@ def main():
 
     rows, summary = run_backtest(pool, pred, hit, L0, issues, hh, tt, oo,
                                  win, k, gamma)
-    print(f"500期回测: 命中 {summary['hit']}/{summary['total']} = {summary['rate']*100:.2f}% "
+    print(f"{WINDOW}期回测: 命中 {summary['hit']}/{summary['total']} = {summary['rate']*100:.2f}% "
           f"(基线 {BASELINE*100:.0f}%)  最大连错 {summary['max_lose']}")
 
     nxt = next_prediction(pool, pred, hit, L0, issues, hh, tt, oo, fixed_info,

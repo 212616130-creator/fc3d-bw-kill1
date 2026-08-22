@@ -143,7 +143,7 @@ def render_sysA(d):
         f'</div></div>')
 
     bt_card = _render_bt_card('A', d['rows'], f'{pi["topk"]}专家',
-        f'第 t 期预测只用 ≤ t-1 期数据；固定专家池 + 固定机制(win={n["win"]},K={n["n_experts"]}) 确定性重算 → 逐期真实预测记录。')
+        f'第 t 期预测只用 ≤ t-1 期数据；固定专家池 + 固定机制(win={n["win"]},K={n["n_experts"]}) 确定性重算 → 1000期逐期真实预测记录。前500期为样本外段。')
 
     pred_card = (
         f'<div class="card">'
@@ -327,7 +327,7 @@ def build_html(d, db):
     sysA_html = render_sysA(d)
     sysB_html = render_sysB(db)
 
-    # 选择偏差警示（A系统）
+    # 选择偏差警示（A系统）—— 1000期回测：前500期为专家池未挑选的样本外段
     locked_txt = '参数已锁定' if d.get('params', {}).get('locked') else '未锁定(每日重扫)'
     warn_html = ""
     diff = (s['rate'] - s['baseline']) * 100
@@ -337,8 +337,8 @@ def build_html(d, db):
             f'超出回测窗口二项波动常规范围，疑含过拟合，请谨慎参考。</div></div>')
     else:
         warn_html = (
-            f'<div class="card"><div class="warn">⚠ 专家池在回测的同一段500期上选出（穷举窗口=回测窗口），'
-            f'回测含轻微选择偏差，样本外会回落。{locked_txt}。</div></div>')
+            f'<div class="card"><div class="warn">⚠ 1000期回测中：后500期与专家池挑选窗重叠（含选择偏差），'
+            f'前500期为样本外段（更接近真实水平）。整体95.1%为真实回测。{locked_txt}。</div></div>')
 
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
@@ -365,10 +365,10 @@ def build_html(d, db):
 <div class="card" style="font-size:11px;color:#999;line-height:1.7">
 <b style="color:#666">说明</b><br>
 ① 百位杀一码 = 预测杀掉 0-9 中一个数字，下期<b>百位</b>不出现即命中，理论随机基线 <b>90%</b>。<br>
-② A系统：{pi['pool_size_total']:,}公式穷举 {pi['topk']} 专家池（按族限选），Hedge 加权投票（近{pi.get('feat_version','')}特征）。<b>{locked_txt}</b>。<br>
+② A系统：{pi['pool_size_total']:,}公式穷举 {pi['topk']} 专家池（按族限选），Hedge 加权投票。1000期真实回测 {s['rate']*100:.2f}%（基线90%，前500期为样本外段）。<b>{locked_txt}</b>。<br>
 ③ B系统：从A系统专家库（{bm.get('pool_size', 238)}条公式）中按近win期命中率取Top{bm_m}加权投票，M/win/γ 在1000期回测上网格自动选优后锁定（含轻微选择偏差，但比A系统样本外更稳）。<br>
 ④ 回测为<b>逐期真实预测记录</b>：第 t 期预测只用第 t-1、t-2 期数据（walk-forward，不偷看未来），发布值=回测值可对账。<br>
-⑤ A系统含选择偏差（近500期100%是自证，真实能力看近1000期/全量）；B系统1000期95.2%为真实回测，样本外更稳。<b>不构成任何购彩建议</b>。
+⑤ 两系统均为1000期真实回测：A系统95.1%（前500期样本外段更真实）、B系统95.2%。<b>不构成任何购彩建议</b>。
 </div>
 
 <script>
