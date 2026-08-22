@@ -162,7 +162,6 @@ def _order_king(dist):
 def render_sysB(db):
     pred = db['prediction']
     meta = db['meta']
-    ws = db['window_stats']
     rows = db['rows']
     m = int(meta.get('m', pred.get('m', 20)))
     win = int(meta.get('window', pred.get('win', 100)))
@@ -214,20 +213,7 @@ def render_sysB(db):
         f'<div style="margin-top:8px;font-size:11px;color:#999;line-height:1.6">'
         f'每条公式 = 组合特征线性式（如 1*mx+1*N9+2*ds+2）；近{win}期命中率即投票权重（γ={gamma}放大强势专家），票王=最终杀码。</div></div>')
 
-    # 多窗口命中率卡
-    stat_rows = ""
-    for W in (100, 200, 500, 1000):
-        w = ws.get(str(W), {})
-        if not w:
-            continue
-        stat_rows += (
-            f'<div class="stat-row"><span>近{W}期</span>'
-            f'<span class="pct">{w["pct"]}% <span style="color:#999;font-size:12px">(基线90%)</span></span></div>')
-    stats_card = (
-        f'<div class="card"><b>多窗口命中率</b> <span style="color:#999;font-size:12px">专家库选优 · 1000期{meta.get("full_hit", "-")}%（基线{meta.get("full_base", 90)}%）</span>'
-        f'{stat_rows}'
-        f'<div style="margin-top:8px;font-size:11px;color:#999;line-height:1.6">'
-        f'⚠ 专家库与 M/win/γ 均在1000期回测上网格选优，回测含轻微选择偏差；锁定后发布值=回测值可对账。</div></div>')
+    # 多窗口命中率卡已按用户要求移除（回测表内已有命中率+最大连错，信息冗余）
 
     pred_card = (
         f'<div class="card">'
@@ -235,7 +221,7 @@ def render_sysB(db):
         f'<div style="margin-top:14px">{ball_html}</div>'
         f'<div class="formula-info" style="margin-top:14px">专家库选优 Top{m}加权投票 · win={win} · γ={gamma} · {locked_txt} · 票数=Top{m}专家加权合计</div>'
         f'</div>')
-    return pred_card + hedge_card + experts_card + stats_card + bt_card
+    return pred_card + hedge_card + experts_card + bt_card
 
 
 # ─────────────────────── 回测表（共用） ───────────────────────
