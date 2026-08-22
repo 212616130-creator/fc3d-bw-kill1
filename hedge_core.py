@@ -217,6 +217,22 @@ def build_leaderboard(pool, hit, L0, N, best_win):
              'rate_recent': round(float(rates[i]), 4)} for i in idx]
 
 
+# ---------------------------------------------------------------- 参数解析（锁定优先）
+
+def _resolve_params(pj):
+    """参数解析（锁定优先）：
+    pool.json 有 locked → 返回 (locked['win'], locked['k'], locked['gamma'], 'locked')
+    无 locked → 返回 (None, None, None, 'unlocked')，由调用方网格扫描选优。
+    """
+    locked = pj.get('locked')
+    if locked:
+        win = int(locked.get('win'))
+        k = int(locked.get('k'))
+        gamma = float(locked.get('gamma', 1.0))
+        return win, k, gamma, 'locked'
+    return None, None, None, 'unlocked'
+
+
 # ---------------------------------------------------------------- 汇总
 
 def main():
@@ -230,19 +246,29 @@ def main():
     pred, hit, L0, hh_arr = build_matrices(issues, hh, tt, oo, pool)
     print(f"矩阵构建完成 ({len(pool)}×{hit.shape[1]})，L0={L0}，用时 {time.time()-t0:.1f}s")
 
-    scan, best = grid_scan(hit, pred, hh_arr, L0)
-    print(f"网格扫描 {len(scan)} 组合 → 最优 win={best['win']}, k={best['k']}, γ={best['gamma']}, 命中 {best['hits']}/{best['total']} = {best['rate']*100:.2f}%")
+    # ★ 锁定模式：参数固定，跳过网格扫描 → 发布值=回测值（确定性）
+    win, k, gamma, mode = _resolve_params(pj)
+    if mode == 'locked':
+        best = {'win': win, 'k': k, 'gamma': gamma, 'hits': None, 'total': WINDOW,
+                'rate': None, 'locked': True, 'note': '参数锁定(确定性模式)，不再每日重扫'}
+        scan = []
+        print(f"★ 锁定模式: win={win}, k={k}, γ={gamma}（确定性：发布值=回测值，跳过网格扫描）")
+    else:
+        scan, best = grid_scan(hit, pred, hh_arr, L0)
+        print(f"网格扫描 {len(scan)} 组合 → 最优 win={best['win']}, k={best['k']}, γ={best['gamma']}, 命中 {best['hits']}/{best['total']} = {best['rate']*100:.2f}%")
+        print("⚠ 未锁定参数：每天重扫 → 同期待开奖重算可能不一致。建议锁定参数(写 pool.json 的 locked 字段)实现确定性。")
+        win, k, gamma = best['win'], best['k'], best['gamma']
 
     rows, summary = run_backtest(pool, pred, hit, L0, issues, hh, tt, oo,
-                                 best['win'], best['k'], best['gamma'])
+                                 win, k, gamma)
     print(f"500期回测: 命中 {summary['hit']}/{summary['total']} = {summary['rate']*100:.2f}% "
           f"(基线 {BASELINE*100:.0f}%)  最大连错 {summary['max_lose']}")
 
     nxt = next_prediction(pool, pred, hit, L0, issues, hh, tt, oo, fixed_info,
-                          best['win'], best['k'], best['gamma'])
+                          win, k, gamma)
     print(f"下期 {nxt['target_issue']} 百位杀码: {nxt['kill']}  (Top3票码 {nxt['top3_vote']})")
 
-    lb = build_leaderboard(pool, hit, L0, len(issues), best['win'])
+    lb = build_leaderboard(pool, hit, L0, len(issues), win)
 
     result = {
         'fingerprint': f"{len(issues)}_{issues[-1]}_{FEAT_VERSION}",
@@ -252,14 +278,14 @@ def main():
                       'last_draw': f"{hh[-1]}{tt[-1]}{oo[-1]}"},
         'pool_info': {'pool_size_total': pj['stats']['pool_size_total'],
                       'window': pj['window'],          # 穷举/选池窗口（500）
-                      'backtest_window': WINDOW,       # 回测/扫描窗口（1000）
+                      'backtest_window': WINDOW,       # 回测/扫描窗口（500）
                       'topk': TOPK, 'pfl': PFL,
                       'n_families': pj['stats']['n_families'],
                       'n_features': pj.get('n_features', NF),
                       'feat_version': FEAT_VERSION,
                       'scan_seconds': pj['stats']['scan_seconds']},
-        'params': {'win': best['win'], 'k': best['k'], 'gamma': best['gamma'],
-                   'smooth': SMOOTH, 'baseline': BASELINE},
+        'params': {'win': win, 'k': k, 'gamma': gamma,
+                   'smooth': SMOOTH, 'baseline': BASELINE, 'locked': bool(mode == 'locked')},
         'scan': scan, 'best_scan': best,
         'next': nxt,
         'summary': summary,

@@ -1,260 +1,369 @@
 # -*- coding: utf-8 -*-
 """
-福彩3D 百位杀一码 — 生成固定静态网页「百位杀一码.html」
-=========================================================
-读 cache/result.json, 输出一个完全自包含的单文件 HTML:
-数据以 window.__DATA__ 内联 JSON 嵌入, 双击即开, 零后端, 可传手机浏览。
-网页风格以 D:\\通杀一码\\通杀一码.html 为准（浅色移动优先、红色杀码大字、白卡片、逐期表近期在上）。
+福彩3D 百位杀一码 — 生成固定静态网页「index.html」（杀和尾双系统风格）
+=====================================================================
+读 cache/result.json（A系统800专家）+ cache/engineB.json（B系统5专家），
+输出一个完全自包含的单文件 HTML：顶部 A/B 双系统切换 + 预测球 + Hedge投票详情卡
++ 回测表（100/200/500/1000期窗口切换）+ 多窗口命中率卡。
+风格参考 D:\\杀和尾\\gen_site.py（v2.0 双面板版式）。
 """
 import json
 import os
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_JSON = os.path.join(BASE_DIR, 'cache', 'result.json')
-OUT_HTML = os.path.join(BASE_DIR, '百位杀一码.html')
+ENGINEB_JSON = os.path.join(BASE_DIR, 'cache', 'engineB.json')
+OUT_HTML = os.path.join(BASE_DIR, 'index.html')
 
-# 内置样式（复刻通杀一码.css）
+# ── 杀和尾 v2.0 双面板 CSS（浅色移动优先）──────────────────
 CSS_TEXT = """
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:#f2f4f7;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;color:#1f2937;padding-bottom:40px}
-.wrap{max-width:480px;margin:0 auto;padding:0 10px}
-.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.96);backdrop-filter:blur(6px);border-bottom:1px solid #e5e7eb;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px}
-.topbar .t{font-size:17px;font-weight:700;letter-spacing:.5px}
-.topbar .t b{color:#2563eb}
-.topbar .sub{font-size:11px;color:#9ca3af;margin-top:2px}
-.card{background:#fff;border-radius:14px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:14px 14px;margin-top:10px}
-.card h3{font-size:13px;color:#6b7280;font-weight:600;margin-bottom:8px;letter-spacing:.3px}
-.balls{display:flex;align-items:center;justify-content:center;gap:12px;padding:4px 0}
-.ball{width:52px;height:52px;border-radius:50%;background:linear-gradient(145deg,#fff,#eef2f7);border:2px solid #d1d5db;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:800;color:#111827;box-shadow:inset 0 2px 4px rgba(0,0,0,.06)}
-.ball.r{background:linear-gradient(145deg,#ff6b6b,#dc2626);border-color:#b91c1c;color:#fff}
-.ball.b{background:linear-gradient(145deg,#60a5fa,#2563eb);border-color:#1d4ed8;color:#fff}
-.issue-tag{text-align:center;font-size:12px;color:#6b7280;margin-top:6px}
-.kill-box{text-align:center;padding:6px 0 2px}
-.kill-label{font-size:13px;color:#6b7280;letter-spacing:2px}
-.kill-num{font-size:96px;font-weight:900;line-height:1.15;background:linear-gradient(180deg,#dc2626,#991b1b);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.kill-info{font-size:12.5px;color:#374151;margin-top:4px}
-.kill-info .f{font-weight:700;color:#2563eb}
-.kill-meta{font-size:11.5px;color:#9ca3af;margin-top:6px;line-height:1.6}
-.stat-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
-.stat{background:#f9fafb;border-radius:10px;padding:9px 4px}
-.stat .v{font-size:19px;font-weight:800}
-.stat .k{font-size:11px;color:#6b7280;margin-top:2px}
-.stat.hl{background:#eff6ff}
-.stat.hl .v{color:#2563eb}
-.v.g{color:#059669}.v.r{color:#dc2626}
-.compare{display:flex;justify-content:space-between;font-size:11.5px;color:#6b7280;margin-top:9px;padding:0 2px}
-.bar{height:6px;border-radius:3px;background:#e5e7eb;margin-top:5px;overflow:hidden}
-.bar i{display:block;height:100%;border-radius:3px;background:#2563eb}
-.bar i.green{background:#059669}
-.warn{background:#fef3c7;border:1px solid #f59e0b;color:#92400e;border-radius:8px;padding:8px 11px;font-size:11.5px;margin-top:9px;line-height:1.6}
-.tbl-scroll{max-height:52vh;overflow-y:auto;border-radius:10px;border:1px solid #eef0f3}
-table{width:100%;border-collapse:collapse;font-size:12.5px}
-thead th{position:sticky;top:0;background:#f3f4f6;color:#4b5563;font-weight:600;padding:8px 6px;text-align:center;border-bottom:1px solid #e5e7eb;z-index:2;white-space:nowrap}
-tbody td{padding:7px 6px;text-align:center;border-bottom:1px solid #f3f4f6}
-tbody tr:active{background:#f9fafb}
-td.iss{color:#6b7280;font-family:ui-monospace,Consolas,monospace;font-size:11.5px}
+:root{--red:#e0453a;--green:#1a9e54;--bg:#f4f6f9;--card:#fff;--line:#e6e9ef}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:#222;max-width:640px;margin:0 auto;padding:12px}
+.card{background:var(--card);border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+h1{font-size:19px}.sub{color:#888;font-size:12px;margin-top:4px}
+.ball-wrap{display:flex;justify-content:center;margin:16px 0}
+.ball{width:80px;height:80px;border-radius:50%;background:var(--red);color:#fff;font-size:42px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(224,69,58,.4)}
+.ball-votes{text-align:center;font-size:13px;color:#999;margin-top:8px;white-space:nowrap;line-height:1.3}
+.ball-label{text-align:center;font-size:13px;color:#666;margin-top:4px}
+.issue{text-align:center;font-size:15px}.issue b{color:var(--red);font-size:20px}
+.issue-flex{display:grid;grid-template-columns:1fr auto 1fr;align-items:baseline;gap:10px;text-align:center}
+.issue-flex b{color:var(--red);line-height:1.15;margin-right:-2px;justify-self:center}
+.issue-pre{color:#444;font-size:14px;white-space:nowrap;justify-self:end}
+.issue-post{color:#444;font-size:14px;white-space:nowrap;justify-self:start}
+@media (max-width:480px){
+  .issue-flex{flex-wrap:nowrap}
+  .issue-flex b{font-size:28px !important}
+}.formula-info{text-align:center;font-size:12px;color:#888;margin:8px 0}
+.stat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--line);font-size:15px}
+.stat-row:last-child{border-bottom:none}.pct{font-weight:700;color:var(--green)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:6px 3px;text-align:center;border-bottom:1px solid var(--line)}
+thead th{position:sticky;top:0;background:#fafbfc;font-size:12px;color:#666;z-index:1}
+.tbl-wrap{max-height:60vh;overflow-y:auto}
+.hit{color:var(--green);font-weight:700}.miss{color:var(--red);font-weight:700}
+td.iss{color:#999;font-size:11.5px;font-family:ui-monospace,Consolas,monospace}
 td.num{font-weight:700;letter-spacing:1px}
-td.kill{font-weight:800;font-size:15px}
-td.kill.hit{color:#059669}
-td.kill.miss{color:#dc2626}
-td.res{font-size:15px}
-td.fname{font-size:11px;color:#6b7280;max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-td.frate{font-size:11px;color:#9ca3af}
-td.t3{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#9ca3af}
-td.t3 b{color:#dc2626;font-weight:800;font-size:13px}
-.miss-row td{background:#fef2f2}
-.scan-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
-.scan-cell{background:#f9fafb;border-radius:8px;padding:6px 2px;text-align:center;font-size:11px;color:#6b7280}
-.scan-cell b{display:block;font-size:15px;color:#374151;margin-top:2px}
-.scan-cell.best{background:#eff6ff;border:1px solid #2563eb}
-.scan-cell.best b{color:#2563eb}
-.lb-item{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid #f3f4f6;font-size:12.5px}
-.lb-item:last-child{border-bottom:none}
-.lb-rank{width:22px;height:22px;border-radius:50%;background:#f3f4f6;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#6b7280;flex-shrink:0}
-.lb-rank.top3{background:#fef3c7;color:#b45309}
-.lb-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.lb-fam{font-size:10px;background:#eff6ff;color:#2563eb;border-radius:4px;padding:1px 5px;flex-shrink:0}
-.lb-rate{font-weight:700;color:#2563eb;flex-shrink:0}
-details{border-top:1px solid #f3f4f6;margin-top:10px}
-details summary{cursor:pointer;font-size:13px;font-weight:600;color:#374151;padding:10px 2px;list-style:none;display:flex;align-items:center;justify-content:space-between}
-details summary::after{content:"▾";color:#9ca3af;font-size:12px}
-details[open] summary::after{content:"▴"}
-.footer{margin-top:16px;padding:12px;background:#fff;border-radius:12px;font-size:11px;color:#9ca3af;line-height:1.7}
-.footer b{color:#6b7280}
-"""
-
-BODY_TEMPLATE = """
-  <div class="card">
-    <div class="kill-box">
-      <div class="kill-label" id="killLabel">下期百位杀一码</div>
-      <div class="kill-num" id="killNum">-</div>
-      <div class="kill-info">机制: <span class="f" id="killFormula">-</span></div>
-      <div class="kill-meta" id="killMeta"></div>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>🏆 最新开奖</h3>
-    <div class="balls" id="balls"><div class="ball">-</div><div class="ball">-</div><div class="ball">-</div></div>
-    <div class="issue-tag" id="lastIssue"></div>
-  </div>
-
-  <div class="card">
-    <h3>📊 近<span id="btWin">-</span>期回测汇总 <span style="color:#9ca3af;font-weight:400">(Hedge加权投票 walk-forward)</span></h3>
-    <div class="stat-grid">
-      <div class="stat hl"><div class="v" id="stRate">-</div><div class="k">回测命中率</div></div>
-      <div class="stat"><div class="v" id="stHit">-</div><div class="k">命中/总数</div></div>
-      <div class="stat"><div class="v" id="stPool">-</div><div class="k">专家池均值</div></div>
-      <div class="stat"><div class="v" id="stMaxWin">-</div><div class="k">最大连中</div></div>
-      <div class="stat"><div class="v r" id="stMaxLose">-</div><div class="k">最大连错</div></div>
-      <div class="stat"><div class="v g" id="stCur">-</div><div class="k">当前状态</div></div>
-    </div>
-    <div class="compare">
-      <span>理论基线 90%</span>
-      <span id="poolNote"></span>
-    </div>
-    <div class="bar"><i class="green" id="barBase" style="width:0%"></i></div>
-    <div class="warn" id="warnSel"></div>
-  </div>
-
-  <div class="card">
-    <h3>📋 逐期真实预测记录 <span style="color:#9ca3af;font-weight:400">(<span id="btWin2">-</span>期 · 近期在上 · 含Top3票码)</span></h3>
-    <div class="tbl-scroll">
-      <table>
-        <thead><tr><th>期号</th><th>开奖</th><th>票码Top3</th><th>杀码</th><th>结果</th><th>首席专家</th></tr></thead>
-        <tbody id="tbBody"></tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3>🎛 参数网格扫描 <span style="color:#9ca3af;font-weight:400">(win×K×γ 全组合自动选优)</span></h3>
-    <div class="tbl-scroll" style="max-height:220px">
-      <table>
-        <thead><tr><th>win</th><th>K</th><th>γ</th><th>命中</th><th>命中率</th></tr></thead>
-        <tbody id="scanTb"></tbody>
-      </table>
-    </div>
-    <div class="compare" style="margin-top:8px"><span id="bestScanNote">-</span></div>
-  </div>
-
-  <div class="card">
-    <details>
-      <summary>🏅 专家池 Top50 <span style="color:#9ca3af;font-weight:400;font-size:11px">(按近窗命中率)</span></summary>
-      <div id="lbBody"><div class="loading" style="padding:16px">加载中...</div></div>
-    </details>
-  </div>
-
-  <div class="footer">
-    <b>说明</b><br>
-    ① 百位杀一码 = 预测杀掉 0-9 中一个数字，下期<b>百位</b>不出现即命中，理论随机基线 <b>90%</b>。<br>
-    ② 公式池 <b id="fc">-</b> 个暴力穷举算法（<span id="nfeat">-</span>特征线性组合），在<b>最新500期</b>按命中率选 Top240 专家池（按族限选保证多样性），主机制 <b>Hedge 加权投票</b>：每期取近 <span id="pWin">-</span> 期命中率 Top<span id="pK">-</span> 专家，按命中率加权投票（权重=命中率^γ），票王 = 百位杀码。参数经 win×K×γ 全组合网格扫描自动选优。<br>
-    ③ 回测为<b>逐期真实预测记录</b>：第 t 期预测只用第 t-1、t-2 期数据（walk-forward，不偷看未来）。<br>
-    ④ <b>选择偏差警示</b>：专家池是在回测的同一段 500 期上按命中率选出的，回测数字含轻微选择偏差，样本外会回落；「固定公式」高分是<b>选择偏差假象</b>（905万公式中挑最大值）。<b>不构成任何购彩建议</b>。<br>
-    ⑤ <b>固定快照</b>：本页为数据快照（生成于 <span id="genTime">-</span>），数据更新后请重新导出。
-  </div>
+td.t3{font-size:11px;color:#999;font-family:ui-monospace,Consolas,monospace}
+td.t3 b{color:var(--red)}
+td.fname{font-size:11px;color:#999;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* ── 手机端优化 ── */
+.tbl-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tbl-scroll table{min-width:580px}
+.dot{width:16px;height:16px;border-radius:50%;font-size:9px;line-height:16px;text-align:center;color:#fff;flex:0 0 auto}
+.dot-ok{background:var(--green)}.dot-bad{background:var(--red)}
+.pick-card{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+.pick-card .ball{width:64px;height:64px;font-size:34px}
+/* ── 双系统切换 ── */
+.sys-switch{display:flex;gap:10px;justify-content:center;margin:12px 0 4px}
+.sys-btn{border:1.5px solid var(--line);background:var(--card);color:#555;border-radius:20px;padding:7px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s}
+.sys-btn.active{background:var(--red);border-color:var(--red);color:#fff}
+.sys-panel{display:none}
+.sys-panel.on{display:block}
+.sys-badge{display:inline-block;font-size:11px;color:#fff;background:var(--red);border-radius:9px;padding:1px 7px;margin-left:6px;vertical-align:2px}
+.sys-badge.gray{background:#999}
+/* ── 回测表窗口切换 ── */
+.win-switch{display:flex;gap:8px;margin:10px 0 6px;flex-wrap:wrap}
+.win-btn{border:1px solid var(--line);background:var(--card);color:#666;border-radius:14px;padding:4px 13px;font-size:12.5px;font-weight:600;cursor:pointer;transition:all .15s}
+.win-btn.active{background:var(--green);border-color:var(--green);color:#fff}
+@media (max-width:480px){.win-btn{font-size:12px;padding:3px 10px}}
+@media (max-width:480px){
+  body{padding:8px}
+  .card{padding:12px;border-radius:10px;margin-bottom:10px}
+  h1{font-size:17px}
+  .ball{width:56px;height:56px;font-size:30px}
+  .ball-votes{font-size:12px;margin-top:6px}
+  .ball-label{font-size:12px}
+  .issue b{font-size:30px !important}
+  table{font-size:12px}
+  th,td{padding:5px 3px}
+  .tbl-scroll table{min-width:560px}
+  td.fname{max-width:80px}
+}
+.warn{background:#fef3c7;border:1px solid #f59e0b;color:#92400e;border-radius:8px;padding:8px 11px;font-size:11.5px;margin-top:9px;line-height:1.6}
 """
 
 
-def build_html(data):
-    payload = json.dumps(data, ensure_ascii=False)
+def esc(s):
+    return str(s).replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+
+
+def _ball_html(king, dist):
+    return (
+        f'<div style="display:flex;justify-content:center;align-items:center;margin:16px 0">'
+        f'<div style="display:flex;flex-direction:column;align-items:center">'
+        f'<div class="ball">{king}</div>'
+        f'<div class="ball-votes">{dist[king]:.1f} 票</div></div></div>')
+
+
+def _votes_bar(dist, label_unit):
+    """Hedge 加权投票详情：10个数字得票条形图。"""
+    _maxv = max(dist) if max(dist) > 0 else 1
+    _order = sorted(range(10), key=lambda x: -dist[x])
+    _medals = {0: '🥇', 1: '🥈', 2: '🥉', 3: '4', 4: '5'}
+    rows = ""
+    for _r, _c in enumerate(_order):
+        _w = max(int(dist[_c] / _maxv * 100), 2)
+        _is_king = _r == 0
+        _row_bg = 'style="background:#fff5f5"' if _is_king else ''
+        _rank_txt = f'<b style="color:var(--red)">票王</b>' if _is_king else f'第{_medals.get(_r, str(_r+1))}名'
+        rows += (
+            f'<tr {_row_bg}><td style="width:34px;font-weight:700">{_c}</td>'
+            f'<td style="width:44%;position:relative"><div style="height:18px;border-radius:4px;'
+            f'background:{"var(--red)" if _is_king else "#f0d9d7"};width:{_w}%"></div></td>'
+            f'<td style="width:70px;font-weight:700">{dist[_c]:.1f}</td>'
+            f'<td style="width:70px">{_rank_txt}</td></tr>')
+    return rows
+
+
+# ─────────────────────── 系统A：800专家池 ───────────────────────
+def render_sysA(d):
+    n = d['next']
+    s = d['summary']
+    di = d['data_info']
+    pi = d['pool_info']
+
+    king = int(n['kill'])
+    _dist = n.get('top3_vote_dist', [0]*10)
+    ball_html = _ball_html(king, _dist)
+
+    locked_txt = '参数已锁定' if d.get('params', {}).get('locked') else '未锁定(每日重扫)'
+    hedge_card = (
+        f'<div class="card"><b>Hedge 加权投票</b> '
+        f'<span style="color:#999;font-size:12px">本期 {n["target_issue"]} · {n["n_experts"]}专家 · 权重=近{n["win"]}期命中率</span>'
+        f'<div class="tbl-scroll"><div class="tbl-wrap" style="max-height:38vh"><table>'
+        f'<thead><tr><th>数字</th><th>得票（加权合计）</th><th>票数</th><th>名次</th></tr></thead>'
+        f'<tbody>{_votes_bar(_dist, "专家")}</tbody></table></div></div>'
+        f'<div style="margin-top:10px;font-size:12px;color:#666;line-height:1.7">'
+        f'<b style="color:var(--red)">票王 = 百位杀 {_order_king(_dist)}</b>（{_dist[_order_king(_dist)]:.1f}票，共识最强）；'
+        f'Top3 票码 = {"·".join(map(str, n["top3_vote"]))}。'
+        f'<br>机制：{pi["pool_size_total"]:,}公式穷举 {pi["topk"]} 专家池（按近 {n["win"]} 期命中率取 Top{n["n_experts"]}），'
+        f'命中率即权重（下限0.02）加权投票，票数最高的数字被「杀掉」。'
+        f'<br>参数：win={n["win"]} · K={n["n_experts"]} · γ={n.get("gamma", 1)} · {locked_txt}'
+        f'</div></div>')
+
+    bt_card = _render_bt_card('A', d['rows'], f'{pi["topk"]}专家',
+        f'第 t 期预测只用 ≤ t-1 期数据；固定专家池 + 固定机制(win={n["win"]},K={n["n_experts"]}) 确定性重算 → 逐期真实预测记录。')
+
+    pred_card = (
+        f'<div class="card">'
+        f'<div class="issue-flex"><span class="issue-pre">预测期号</span><b style="font-size:32px;letter-spacing:1px">{n["target_issue"]}</b><span class="issue-post">期</span></div>'
+        f'<div style="margin-top:14px">{ball_html}</div>'
+        f'<div class="formula-info" style="margin-top:14px">Hedge {n["n_experts"]}专家加权投票 · win={n["win"]} · {locked_txt} · 票数={n["n_experts"]}专家加权合计</div>'
+        f'</div>')
+    return pred_card + hedge_card + bt_card
+
+
+def _order_king(dist):
+    return sorted(range(10), key=lambda x: -dist[x])[0]
+
+
+# ─────────────────────── 系统B：5专家 ───────────────────────
+def render_sysB(db):
+    pred = db['prediction']
+    meta = db['meta']
+    ws = db['window_stats']
+    rows = db['rows']
+
+    king = int(pred['kill'])
+    _dist = pred.get('votes', [0]*10)
+    ball_html = _ball_html(king, _dist)
+
+    exp_txt = " · ".join(f"{k}={v}" for k, v in pred.get('experts', {}).items())
+    hedge_card = (
+        f'<div class="card"><b>Hedge 加权投票</b> '
+        f'<span style="color:#999;font-size:12px">本期 {pred["target_issue"]} · 5专家 · 权重=近{meta["window"]}期命中率</span>'
+        f'<div class="tbl-scroll"><div class="tbl-wrap" style="max-height:38vh"><table>'
+        f'<thead><tr><th>数字</th><th>得票（加权合计）</th><th>票数</th><th>名次</th></tr></thead>'
+        f'<tbody>{_votes_bar(_dist, "专家")}</tbody></table></div></div>'
+        f'<div style="margin-top:10px;font-size:12px;color:#666;line-height:1.7">'
+        f'<b style="color:var(--red)">票王 = 百位杀 {_order_king(_dist)}</b>（{_dist[_order_king(_dist)]:.1f}票，共识最强）；'
+        f'Top3 票码 = {"·".join(map(str, pred["top3"]))}。'
+        f'<br>机制：5个手挑公式专家（A9+h1s3+全史频+近50频+转移表），近{meta["window"]}期命中率做权重'
+        f'（下限0.02）加权投票，票数最高的数字被「杀掉」。<br>'
+        f'本期各专家杀码：{exp_txt}</div></div>')
+
+    bt_card = _render_bt_card('B', rows, '5专家',
+        f'第 t 期预测只用 ≤ t-1 期数据；固定5专家 + 固定机制(win={meta["window"]}) 确定性重算 → 逐期真实预测记录。')
+
+    # 多窗口命中率卡
+    stat_rows = ""
+    for W in (100, 200, 500, 1000):
+        w = ws.get(str(W), {})
+        if not w:
+            continue
+        stat_rows += (
+            f'<div class="stat-row"><span>近{W}期</span>'
+            f'<span class="pct">{w["pct"]}% <span style="color:#999;font-size:12px">(基线{w["base_pct"]}%)</span></span></div>')
+    stats_card = (
+        f'<div class="card"><b>多窗口命中率</b> <span style="color:#999;font-size:12px">v2.0五专家 · 全量{meta["full_hit"]}%（基线{meta["full_base"]}%）</span>'
+        f'{stat_rows}'
+        f'<div style="margin-top:8px;font-size:11px;color:#999;line-height:1.6">'
+        f'⚠ 专家是固定规则（不从历史窗口挑选），所有窗口成绩均为真实，无选择偏差。</div></div>')
+
+    pred_card = (
+        f'<div class="card">'
+        f'<div class="issue-flex"><span class="issue-pre">预测期号</span><b style="font-size:32px;letter-spacing:1px">{pred["target_issue"]}</b><span class="issue-post">期</span></div>'
+        f'<div style="margin-top:14px">{ball_html}</div>'
+        f'<div class="formula-info" style="margin-top:14px">Hedge 5专家加权投票 · win={meta["window"]} · 参数已锁定 · 票数=5专家加权合计</div>'
+        f'</div>')
+    return pred_card + hedge_card + stats_card + bt_card
+
+
+# ─────────────────────── 回测表（共用） ───────────────────────
+def _kill_in_top3(r, k):
+    """百位是否落在该期杀码 top3 的前 k 个里（k=1/2/3）。"""
+    b = int(r['num'][0])
+    return b in r['top3'][:k]
+
+
+def _render_bt_rows(rows):
+    """两系统共用回测表行渲染：只把杀错的单个数字变红。"""
+    out = ""
+    for r in rows:
+        b = int(r['num'][0])
+        top3 = r['top3']
+        def _cell(code):
+            if code == b:
+                return f'<td class="miss" style="font-weight:700">{code}</td>'
+            return f'<td style="font-weight:700">{code}</td>'
+        cells = "".join(_cell(top3[i]) for i in range(min(3, len(top3))))
+        out += (
+            f'<tr><td class="iss">{esc(r["issue"])}</td>'
+            f'<td class="num">{r["num"]}</td>'
+            f'<td class="num" style="color:var(--green)">{b}</td>'
+            f'{cells}</tr>')
+    return out
+
+
+def _render_bt_card(sys_id, rows, sys_name, note):
+    """回测表卡片：顶部 100/200/500/1000期 切换按钮 + 杀1/杀2/杀3命中率联动 + 四个窗口表格。
+    sys_id ∈ {'A','B'} 用于区分两套独立切换（localStorage 各自记忆）。
+    命中率口径：杀1 = 百位不在top3[0]；杀2 = 百位不在top3[0:2]；杀3 = 百位不在top3[0:3]。
+    """
+    wins = [100, 200, 500, 1000]
+    rate_html = ""
+    for W in wins:
+        seg = rows[:W]
+        n = len(seg)
+        h1 = sum(1 for r in seg if not _kill_in_top3(r, 1))
+        h2 = sum(1 for r in seg if not _kill_in_top3(r, 2))
+        h3 = sum(1 for r in seg if not _kill_in_top3(r, 3))
+        p1 = h1 / n * 100 if n else 0
+        p2 = h2 / n * 100 if n else 0
+        p3 = h3 / n * 100 if n else 0
+        rate_html += (
+            f'<div class="stat-row" id="bt-rate-{sys_id}-{W}" style="display:none">'
+            f'<span>命中率（近{W}期）</span>'
+            f'<span class="pct">杀1 {p1:.2f}% · 杀2 {p2:.2f}% · 杀3 {p3:.2f}%'
+            f'<span style="color:#999;font-size:12px">（{h1}/{h2}/{h3}）</span></span></div>')
+    tbl_html = ""
+    for W in wins:
+        seg = rows[:W]
+        rows_html = _render_bt_rows(seg)
+        disp = 'style="display:block"' if W == 1000 else 'style="display:none"'
+        tbl_html += (
+            f'<div id="bt-tbl-{sys_id}-{W}" class="bt-win-tbl" {disp}>'
+            f'<div class="tbl-scroll"><div class="tbl-wrap"><table>'
+            f'<thead><tr><th>期号</th><th>号码</th><th>百位</th><th>杀1</th><th>杀2</th><th>杀3</th></tr></thead>'
+            f'<tbody>{rows_html}</tbody></table></div></div></div>')
+    btns = ""
+    for W in wins:
+        active = 'active' if W == 1000 else ''
+        btns += (
+            f'<button class="win-btn {active}" data-sys="{sys_id}" data-w="{W}" '
+            f'onclick="switchBtWin(\'{sys_id}\', {W})">{W}期</button>')
+    return (
+        f'<div class="card"><b>回测表</b> '
+        f'<span style="color:#999;font-size:12px">{sys_name} · 近→远 · 逐期真实预测记录（walk-forward，不偷看未来）</span>'
+        f'<div class="win-switch">{btns}</div>'
+        f'{rate_html}'
+        f'<div style="margin-top:8px;font-size:12px;color:#999;line-height:1.8">'
+        f'<span class="miss">🔴 红字 = 该数字杀错（百位恰好=此数）</span>；其余为默认色 = 杀对。</div>'
+        f'{tbl_html}'
+        f'<div style="margin-top:10px;font-size:12px;color:#999;line-height:1.6">{note}</div></div>')
+
+
+# ─────────────────────── 页面组装 ───────────────────────
+def build_html(d, db):
+    n = d['next']
+    di = d['data_info']
+    pi = d['pool_info']
+    s = d['summary']
+
+    sysA_html = render_sysA(d)
+    sysB_html = render_sysB(db)
+
+    # 选择偏差警示（A系统）
+    locked_txt = '参数已锁定' if d.get('params', {}).get('locked') else '未锁定(每日重扫)'
+    warn_html = ""
+    diff = (s['rate'] - s['baseline']) * 100
+    if abs(diff) > 6:
+        warn_html = (
+            f'<div class="card"><div class="warn">⚠ 回测率 {s["rate"]*100:.2f}% 与90%基线偏离 {diff:.1f}pp，'
+            f'超出回测窗口二项波动常规范围，疑含过拟合，请谨慎参考。</div></div>')
+    else:
+        warn_html = (
+            f'<div class="card"><div class="warn">⚠ 专家池在回测的同一段500期上选出（穷举窗口=回测窗口），'
+            f'回测含轻微选择偏差，样本外会回落。{locked_txt}。</div></div>')
+
     return f"""<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>福彩3D · 百位杀一码 (固定快照)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>福彩3D · 百位杀一码 · Hedge 双系统</title>
 <style>{CSS_TEXT}</style>
 </head>
 <body>
-<div class="wrap">
-  <div class="topbar">
-    <div>
-      <div class="t">福彩3D · <b>百位杀一码</b></div>
-      <div class="sub" id="dataInfo">数据加载中...</div>
-    </div>
-  </div>
-{BODY_TEMPLATE}
+<h1>🎯 福彩3D 百位杀一码 <span style="font-size:13px;color:#888">Hedge 双系统</span></h1>
+<div class="sub">数据至 {di['last']} 期（{di['last_draw']}）· 共 {di['n_issues']} 期 · 两套引擎共用同一份数据</div>
+
+<div class="sys-switch">
+  <button class="sys-btn active" data-sys="A" onclick="switchSys('A')">800专家 <span class="sys-badge">当前</span></button>
+  <button class="sys-btn" data-sys="B" onclick="switchSys('B')">5专家 <span class="sys-badge gray">v2.0</span></button>
 </div>
+
+{warn_html}
+
+<div id="sysA" class="sys-panel on">{sysA_html}</div>
+<div id="sysB" class="sys-panel">{sysB_html}</div>
+
+<div class="card" style="font-size:11px;color:#999;line-height:1.7">
+<b style="color:#666">说明</b><br>
+① 百位杀一码 = 预测杀掉 0-9 中一个数字，下期<b>百位</b>不出现即命中，理论随机基线 <b>90%</b>。<br>
+② A系统：{pi['pool_size_total']:,}公式穷举 {pi['topk']} 专家池（按族限选），Hedge 加权投票（近{pi.get('feat_version','')}特征）。<b>{locked_txt}</b>。<br>
+③ B系统：5个固定规则专家（A9+h1s3+全史频+近50频+转移表），无选择偏差，全窗口真实。<br>
+④ 回测为<b>逐期真实预测记录</b>：第 t 期预测只用第 t-1、t-2 期数据（walk-forward，不偷看未来），发布值=回测值可对账。<br>
+⑤ A系统含选择偏差（近500期100%是自证，真实能力看近1000期/全量）；B系统各窗口均真实。<b>不构成任何购彩建议</b>。
+</div>
+
 <script>
-window.__DATA__ = {payload};
-</script>
-<script>
-var DATA = window.__DATA__;
-var $ = function(id){{ return document.getElementById(id); }};
-function fmtPct(x){{ return (x*100).toFixed(1)+"%"; }}
-function render(d){{
-  DATA = d;
-  var n = d.next, s = d.summary, di = d.data_info, pi = d.pool_info;
-  $("dataInfo").textContent = "数据至 " + di.last + " 期 · 共 " + di.n_issues + " 期 · " + pi.n_features + "特征/" + pi.pool_size_total.toLocaleString() + "公式 · 专家池 " + pi.topk + " (固定快照)";
-  $("btWin").textContent = pi.backtest_window || pi.window;
-  $("btWin2").textContent = pi.backtest_window || pi.window;
-  $("fc").textContent = pi.pool_size_total.toLocaleString();
-  $("nfeat").textContent = pi.n_features;
-  var num = di.last_draw;
-  $("balls").innerHTML = '<div class="ball r">'+num[0]+'</div><div class="ball r">'+num[1]+'</div><div class="ball r">'+num[2]+'</div>';
-  $("lastIssue").textContent = "第 " + di.last + " 期开奖";
-  $("killLabel").textContent = n.target_issue + " 期 百位杀一码";
-  $("killNum").textContent = n.kill;
-  $("killFormula").textContent = "Hedge 加权投票 (K=" + n.n_experts + ", win=" + n.win + ", γ=" + (n.gamma || 1) + ")";
-  $("killMeta").innerHTML = "首席专家近"+ n.win +"期命中率 <b>" + fmtPct(n.top_rate) + "</b> · 基线 90%<br>Top3票码: " + n.top3_vote.join(" / ") +
-    "<br>参考: " + n.refs.map(function(r){{ return r.name + " → 杀" + r.kill; }}).join(" · ");
-  $("stRate").textContent = fmtPct(s.rate);
-  $("stRate").style.color = s.rate >= s.baseline ? "#2563eb" : "#dc2626";
-  $("stHit").textContent = s.hit + "/" + s.total;
-  $("stPool").textContent = fmtPct(s.pool_avg);
-  $("stMaxWin").textContent = s.max_win;
-  $("stMaxLose").textContent = s.max_lose;
-  if(s.cur_lose > 0){{ $("stCur").textContent = "连错"+s.cur_lose; $("stCur").style.color = "#dc2626"; }}
-  else {{ $("stCur").textContent = "连中"+s.cur_win; $("stCur").style.color = "#059669"; }}
-  $("poolNote").textContent = "专家池均值 " + fmtPct(s.pool_avg) + " · 固定公式(偏差) " + fmtPct(d.fixed.rate);
-  $("barBase").style.width = Math.min(100, (s.baseline*100)) + "%";
-  var diff = (s.rate - s.baseline) * 100;
-  if (Math.abs(diff) > 6) {{
-    $("warnSel").textContent = "⚠ 回测率与90%基线偏离 " + diff.toFixed(1) + "pp，超出回测窗口二项波动常规范围，疑含过拟合，请谨慎参考。";
-  }} else {{
-    $("warnSel").textContent = "⚠ 专家池在回测的同一段500期上选出（穷举窗口=回测窗口），回测含轻微选择偏差，样本外会回落。";
-  }}
-  $("pWin").textContent = d.params.win;
-  $("pK").textContent = d.params.k;
-  var sg = "";
-  d.scan.forEach(function(r){{
-    var isBest = (r.win === d.best_scan.win && r.k === d.best_scan.k && r.gamma === d.best_scan.gamma);
-    sg += '<tr class="' + (isBest ? "miss-row" : "") + '">' +
-      '<td class="iss">' + r.win + '</td>' +
-      '<td class="iss">' + r.k + '</td>' +
-      '<td class="iss">' + r.gamma + '</td>' +
-      '<td class="iss">' + r.hits + '/' + r.total + '</td>' +
-      '<td class="' + (isBest ? "kill hit" : "kill") + '">' + fmtPct(r.rate) + '</td></tr>';
-  }});
-  $("scanTb").innerHTML = sg;
-  $("bestScanNote").textContent = "最优参数: win=" + d.best_scan.win + ", K=" + d.best_scan.k + ", γ=" + d.best_scan.gamma + " → 命中 " + d.best_scan.hits + "/" + d.best_scan.total + " = " + fmtPct(d.best_scan.rate);
-  var html = "";
-  d.rows.forEach(function(r){{
-    var cls = r.hit ? "hit" : "miss";
-    var t3 = (r.top3 || [r.kill]).map(function(c, i){{ return i === 0 ? '<b>' + c + '</b>' : c; }}).join("·");
-    var vd = r.votes ? " · 票数分布[" + r.votes.map(function(v){{return v.toFixed(1);}}).join(",") + "]" : "";
-    html += '<tr class="' + (r.hit ? "" : "miss-row") + '">' +
-      '<td class="iss">' + r.issue + '</td>' +
-      '<td class="num">' + r.num + '</td>' +
-      '<td class="t3">' + t3 + '</td>' +
-      '<td class="kill ' + cls + '">' + r.kill + '</td>' +
-      '<td class="res">' + (r.hit ? "✅" : "❌") + '</td>' +
-      '<td class="fname" title="' + r.fname + ' [' + r.fam + ']' + vd + '">' + r.fname + '</td></tr>';
-  }});
-  $("tbBody").innerHTML = html;
-  var lb = "";
-  d.leaderboard.forEach(function(f, i){{
-    var rank = i < 3 ? '<div class="lb-rank top3">' + (i+1) + '</div>' : '<div class="lb-rank">' + (i+1) + '</div>';
-    lb += '<div class="lb-item">' + rank +
-      '<span class="lb-name">' + f.name + '</span>' +
-      '<span class="lb-fam">' + f.fam + '</span>' +
-      '<span class="lb-rate">' + fmtPct(f.rate_recent) + '</span></div>';
-  }});
-  $("lbBody").innerHTML = lb || "无数据";
-  $("genTime").textContent = d.generated_at;
+function switchSys(s){{
+  document.querySelectorAll('.sys-btn').forEach(b=>b.classList.toggle('active', b.dataset.sys===s));
+  document.getElementById('sysA').classList.toggle('on', s==='A');
+  document.getElementById('sysB').classList.toggle('on', s==='B');
+  try{{localStorage.setItem('bwk_sys', s)}}catch(e){{}}
 }}
-render(DATA);
+function switchBtWin(sys, w){{
+  document.querySelectorAll('.win-btn[data-sys="'+sys+'"]').forEach(b=>b.classList.toggle('active', +b.dataset.w===w));
+  [100,200,500,1000].forEach(x=>{{
+    var t=document.getElementById('bt-tbl-'+sys+'-'+x), r=document.getElementById('bt-rate-'+sys+'-'+x);
+    if(t) t.style.display = (x===w)?'block':'none';
+    if(r) r.style.display = (x===w)?'block':'none';
+  }});
+  try{{localStorage.setItem('bwk_bt_'+sys, w)}}catch(e){{}}
+}}
+(function(){{
+  try{{
+    var s = localStorage.getItem('bwk_sys');
+    if(s === 'B') switchSys('B');
+    ['A','B'].forEach(function(sys){{
+      var w = localStorage.getItem('bwk_bt_'+sys);
+      if(w && [100,200,500,1000].indexOf(+w)>=0) switchBtWin(sys, +w);
+    }});
+  }}catch(e){{}}
+}})();
 </script>
 </body>
 </html>
@@ -263,17 +372,25 @@ render(DATA);
 
 def main():
     if not os.path.exists(CACHE_JSON):
-        raise RuntimeError("未找到 cache/result.json，请先运行 hedge_core.py 或 update.py")
+        raise RuntimeError("未找到 cache/result.json，请先运行 hedge_core.py 或 cloud_update.py")
     with open(CACHE_JSON, 'r', encoding='utf-8') as f:
         data = json.load(f)
-    html = build_html(data)
+    if not os.path.exists(ENGINEB_JSON):
+        raise RuntimeError("未找到 cache/engineB.json，请先运行 hedge_engine.py")
+    with open(ENGINEB_JSON, 'r', encoding='utf-8') as f:
+        db = json.load(f)
+    html = build_html(data, db)
     with open(OUT_HTML, 'w', encoding='utf-8') as f:
         f.write(html)
     s, n = data['summary'], data['next']
+    bp = db['prediction']
+    locked_txt = '已锁定' if data.get('params', {}).get('locked') else '未锁定'
     print(f"已生成固定网页: {OUT_HTML}")
-    print(f"数据至 {data['data_info']['last']} 期 | 公式池 {data['pool_info']['pool_size_total']:,} | 专家池 {data['pool_info']['topk']}")
-    print(f"机制: Hedge(K={n['n_experts']},win={n['win']}) | 回测 {s['hit']}/{s['total']} = {s['rate']*100:.2f}% (基线90%)")
-    print(f"下一期 {n['target_issue']} 百位杀 {n['kill']}")
+    print(f"数据至 {data['data_info']['last']} 期 | 公式池 {data['pool_info']['pool_size_total']:,} | 专家池 {data['pool_info']['topk']} ({locked_txt})")
+    print(f"[A系统] Hedge(K={n['n_experts']},win={n['win']}) | 回测 {s['hit']}/{s['total']} = {s['rate']*100:.2f}% (基线90%)")
+    print(f"[A系统] 下一期 {n['target_issue']} 百位杀 {n['kill']}")
+    print(f"[B系统] 全量 {db['meta']['full_hit']}% (基线{db['meta']['full_base']}%)")
+    print(f"[B系统] 下一期 {bp['target_issue']} 百位杀 {bp['kill']} (Top3 {bp['top3']})")
     print("双击打开即可浏览，或传到手机查看。")
 
 
