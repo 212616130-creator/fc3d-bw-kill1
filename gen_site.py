@@ -13,6 +13,7 @@ import os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CACHE_JSON = os.path.join(BASE_DIR, 'cache', 'result.json')
 ENGINEB_JSON = os.path.join(BASE_DIR, 'cache', 'engineB.json')
+OOS_JSON = os.path.join(BASE_DIR, 'cache', 'oos_backtest.json')
 OUT_HTML = os.path.join(BASE_DIR, 'index.html')
 
 # ── 杀和尾 v2.0 双面板 CSS（浅色移动优先）──────────────────
@@ -315,8 +316,37 @@ def _render_bt_card(sys_id, rows, sys_name, note):
         f'<div style="margin-top:10px;font-size:12px;color:#999;line-height:1.6">{note}</div></div>')
 
 
+# ─────────────────────── 样本外验证卡（最诚实口径） ───────────────────────
+def render_oos_card(oos):
+    """样本外 1000 期真实回测：专家池从未见过的段（挑选窗之前）。
+    这是两系统真实泛化能力的最终检验，展示在页面底部。"""
+    seg = oos['oos_segment']
+    rowsA, rowsB = oos['A']['rows'], oos['B']['rows']
+
+    def _stat(rows, label):
+        hits = sum(1 for r in rows if r['hit'])
+        n = len(rows)
+        near = sum(1 for r in rows[:500] if r['hit']) / 500 * 100
+        far = sum(1 for r in rows[500:] if r['hit']) / 500 * 100
+        return f'<div class="stat-row"><span>{label}</span><span class="pct">{hits}/{n} = {hits/n*100:.2f}%</span></div>'
+
+    rows_html = (
+        f'<div class="stat-row"><span>段范围</span><span style="font-size:12px;color:#666">{seg["start"]} ~ {seg["end"]}（{seg["len"]}期）</span></div>'
+        f'<div class="stat-row"><span>与挑选窗</span><span style="font-size:12px;color:#666">完全不相交 · 专家从未见过</span></div>'
+        f'<div class="stat-row"><span>A系统（800专家）</span><span class="pct">{sum(1 for r in rowsA if r["hit"])}/{len(rowsA)} = {sum(1 for r in rowsA if r["hit"])/len(rowsA)*100:.2f}%</span></div>'
+        f'<div class="stat-row"><span>B系统（专家库选优）</span><span class="pct">{sum(1 for r in rowsB if r["hit"])}/{len(rowsB)} = {sum(1 for r in rowsB if r["hit"])/len(rowsB)*100:.2f}%</span></div>'
+        f'<div class="stat-row"><span>随机基线</span><span class="pct" style="color:#999">90.00%</span></div>')
+    return (
+        f'<div class="card"><b>🎯 样本外 1000 期真实回测</b> '
+        f'<span style="color:#999;font-size:12px">最诚实口径 · 专家池从未见过该段数据</span>'
+        f'{rows_html}'
+        f'<div style="margin-top:8px;font-size:11px;color:#999;line-height:1.6">'
+        f'⚠ 两系统在纯样本外均回落至 90% 基线附近（A={sum(1 for r in rowsA if r["hit"])/len(rowsA)*100:.1f}% / B={sum(1 for r in rowsB if r["hit"])/len(rowsB)*100:.1f}%），'
+        f'证实真实水平≈90%±1pp，数学天花板，无稳定超额。回测表里的 95% 含选择偏差（近500期为挑选窗内）。</div></div>')
+
+
 # ─────────────────────── 页面组装 ───────────────────────
-def build_html(d, db):
+def build_html(d, db, oos=None):
     n = d['next']
     di = d['data_info']
     pi = d['pool_info']
@@ -326,6 +356,7 @@ def build_html(d, db):
 
     sysA_html = render_sysA(d)
     sysB_html = render_sysB(db)
+    oos_html = render_oos_card(oos) if oos else ""
 
     # 选择偏差警示（A系统）—— 1000期回测：前500期为专家池未挑选的样本外段
     locked_txt = '参数已锁定' if d.get('params', {}).get('locked') else '未锁定(每日重扫)'
@@ -361,6 +392,8 @@ def build_html(d, db):
 
 <div id="sysA" class="sys-panel on">{sysA_html}</div>
 <div id="sysB" class="sys-panel">{sysB_html}</div>
+
+{oos_html}
 
 <div class="card" style="font-size:11px;color:#999;line-height:1.7">
 <b style="color:#666">说明</b><br>
@@ -413,7 +446,11 @@ def main():
         raise RuntimeError("未找到 cache/engineB.json，请先运行 hedge_engine.py")
     with open(ENGINEB_JSON, 'r', encoding='utf-8') as f:
         db = json.load(f)
-    html = build_html(data, db)
+    oos = None
+    if os.path.exists(OOS_JSON):
+        with open(OOS_JSON, 'r', encoding='utf-8') as f:
+            oos = json.load(f)
+    html = build_html(data, db, oos)
     with open(OUT_HTML, 'w', encoding='utf-8') as f:
         f.write(html)
     s, n = data['summary'], data['next']
