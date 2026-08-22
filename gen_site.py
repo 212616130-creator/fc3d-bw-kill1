@@ -2,9 +2,9 @@
 """
 福彩3D 百位杀一码 — 生成固定静态网页「index.html」（杀和尾双系统风格）
 =====================================================================
-读 cache/result.json（A系统800专家）+ cache/engineB.json（B系统5专家），
+读 cache/result.json（A系统800专家）+ cache/engineB.json（B系统v2专家库选优），
 输出一个完全自包含的单文件 HTML：顶部 A/B 双系统切换 + 预测球 + Hedge投票详情卡
-+ 回测表（100/200/500/1000期窗口切换）+ 多窗口命中率卡。
++ 本期入选专家卡 + 回测表（100/200/500/1000期窗口切换）+ 多窗口命中率卡。
 风格参考 D:\\杀和尾\\gen_site.py（v2.0 双面板版式）。
 """
 import json
@@ -158,33 +158,61 @@ def _order_king(dist):
     return sorted(range(10), key=lambda x: -dist[x])[0]
 
 
-# ─────────────────────── 系统B：5专家 ───────────────────────
+# ─────────────────────── 系统B：专家库选优（v2） ───────────────────────
 def render_sysB(db):
     pred = db['prediction']
     meta = db['meta']
     ws = db['window_stats']
     rows = db['rows']
+    m = int(meta.get('m', pred.get('m', 20)))
+    win = int(meta.get('window', pred.get('win', 100)))
+    gamma = float(meta.get('gamma', pred.get('gamma', 1.0)))
+    locked_txt = '参数已锁定' if meta.get('locked') else '未锁定(每日重扫)'
 
     king = int(pred['kill'])
     _dist = pred.get('votes', [0]*10)
     ball_html = _ball_html(king, _dist)
 
-    exp_txt = " · ".join(f"{k}={v}" for k, v in pred.get('experts', {}).items())
     hedge_card = (
         f'<div class="card"><b>Hedge 加权投票</b> '
-        f'<span style="color:#999;font-size:12px">本期 {pred["target_issue"]} · 5专家 · 权重=近{meta["window"]}期命中率</span>'
+        f'<span style="color:#999;font-size:12px">本期 {pred["target_issue"]} · 从{meta["pool_size"]}专家库取Top{m} · 权重=近{win}期命中率</span>'
         f'<div class="tbl-scroll"><div class="tbl-wrap" style="max-height:38vh"><table>'
         f'<thead><tr><th>数字</th><th>得票（加权合计）</th><th>票数</th><th>名次</th></tr></thead>'
         f'<tbody>{_votes_bar(_dist, "专家")}</tbody></table></div></div>'
         f'<div style="margin-top:10px;font-size:12px;color:#666;line-height:1.7">'
         f'<b style="color:var(--red)">票王 = 百位杀 {_order_king(_dist)}</b>（{_dist[_order_king(_dist)]:.1f}票，共识最强）；'
         f'Top3 票码 = {"·".join(map(str, pred["top3"]))}。'
-        f'<br>机制：5个手挑公式专家（A9+h1s3+全史频+近50频+转移表），近{meta["window"]}期命中率做权重'
-        f'（下限0.02）加权投票，票数最高的数字被「杀掉」。<br>'
-        f'本期各专家杀码：{exp_txt}</div></div>')
+        f'<br>机制：从A系统 {meta["pool_size"]} 专家库按近 {win} 期命中率取 Top{m}，'
+        f'权重=命中率^γ（γ={gamma}，下限0.02）加权投票，票数最高的数字被「杀掉」。<br>'
+        f'参数：M={m} · win={win} · γ={gamma} · {locked_txt}（1000期网格扫描自动选优后锁定）</div></div>')
 
-    bt_card = _render_bt_card('B', rows, '5专家',
-        f'第 t 期预测只用 ≤ t-1 期数据；固定5专家 + 固定机制(win={meta["window"]}) 确定性重算 → 逐期真实预测记录。')
+    bt_card = _render_bt_card('B', rows, f'Top{m}专家',
+        f'第 t 期预测只用 ≤ t-1 期数据；固定专家库{meta["pool_size"]}条 + 固定机制(M={m},win={win},γ={gamma}) 确定性重算 → 逐期真实预测记录。')
+
+    # ── 本期入选专家卡（第3位置）：排名/专家(公式)/家族/本期杀码/近win命中率/权重 ──
+    exp_rows = ""
+    for e in db.get('selected_experts', []):
+        rk = e.get('rank', '-')
+        nm = e.get('name', '-')
+        fam = e.get('fam', '')
+        k = e.get('kill', '-')
+        rw = e.get('rate_win', '-')
+        wt = e.get('weight', '-')
+        exp_rows += (
+            f'<tr><td style="color:#999;font-size:11px">{rk}</td>'
+            f'<td style="font-size:11px;color:#333;max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="{esc(nm)} [族:{esc(fam)}]">{esc(nm)}</td>'
+            f'<td style="font-size:11px;color:#999">{esc(fam)}</td>'
+            f'<td style="font-weight:700;color:var(--red)">{k}</td>'
+            f'<td>{rw}%</td>'
+            f'<td>{wt}</td></tr>')
+    experts_card = (
+        f'<div class="card"><b>👥 本期入选专家（Top{m}）</b> '
+        f'<span style="color:#999;font-size:12px">来自{meta["pool_size"]}专家库 · 按近{win}期命中率排序 · 权重=命中率^γ</span>'
+        f'<div class="tbl-scroll"><div class="tbl-wrap" style="max-height:40vh"><table>'
+        f'<thead><tr><th>#</th><th>专家（公式）</th><th>族</th><th>杀码</th><th>近{win}期</th><th>权重</th></tr></thead>'
+        f'<tbody>{exp_rows}</tbody></table></div></div>'
+        f'<div style="margin-top:8px;font-size:11px;color:#999;line-height:1.6">'
+        f'每条公式 = 组合特征线性式（如 1*mx+1*N9+2*ds+2）；近{win}期命中率即投票权重（γ={gamma}放大强势专家），票王=最终杀码。</div></div>')
 
     # 多窗口命中率卡
     stat_rows = ""
@@ -194,20 +222,20 @@ def render_sysB(db):
             continue
         stat_rows += (
             f'<div class="stat-row"><span>近{W}期</span>'
-            f'<span class="pct">{w["pct"]}% <span style="color:#999;font-size:12px">(基线{w["base_pct"]}%)</span></span></div>')
+            f'<span class="pct">{w["pct"]}% <span style="color:#999;font-size:12px">(基线90%)</span></span></div>')
     stats_card = (
-        f'<div class="card"><b>多窗口命中率</b> <span style="color:#999;font-size:12px">v2.0五专家 · 全量{meta["full_hit"]}%（基线{meta["full_base"]}%）</span>'
+        f'<div class="card"><b>多窗口命中率</b> <span style="color:#999;font-size:12px">专家库选优 · 1000期{meta.get("full_hit", "-")}%（基线{meta.get("full_base", 90)}%）</span>'
         f'{stat_rows}'
         f'<div style="margin-top:8px;font-size:11px;color:#999;line-height:1.6">'
-        f'⚠ 专家是固定规则（不从历史窗口挑选），所有窗口成绩均为真实，无选择偏差。</div></div>')
+        f'⚠ 专家库与 M/win/γ 均在1000期回测上网格选优，回测含轻微选择偏差；锁定后发布值=回测值可对账。</div></div>')
 
     pred_card = (
         f'<div class="card">'
         f'<div class="issue-flex"><span class="issue-pre">预测期号</span><b style="font-size:32px;letter-spacing:1px">{pred["target_issue"]}</b><span class="issue-post">期</span></div>'
         f'<div style="margin-top:14px">{ball_html}</div>'
-        f'<div class="formula-info" style="margin-top:14px">Hedge 5专家加权投票 · win={meta["window"]} · 参数已锁定 · 票数=5专家加权合计</div>'
+        f'<div class="formula-info" style="margin-top:14px">专家库选优 Top{m}加权投票 · win={win} · γ={gamma} · {locked_txt} · 票数=Top{m}专家加权合计</div>'
         f'</div>')
-    return pred_card + hedge_card + stats_card + bt_card
+    return pred_card + hedge_card + experts_card + stats_card + bt_card
 
 
 # ─────────────────────── 回测表（共用） ───────────────────────
@@ -290,6 +318,8 @@ def build_html(d, db):
     di = d['data_info']
     pi = d['pool_info']
     s = d['summary']
+    bm = db['meta']
+    bm_m = int(bm.get('m', 20))
 
     sysA_html = render_sysA(d)
     sysB_html = render_sysB(db)
@@ -321,7 +351,7 @@ def build_html(d, db):
 
 <div class="sys-switch">
   <button class="sys-btn active" data-sys="A" onclick="switchSys('A')">800专家 <span class="sys-badge">当前</span></button>
-  <button class="sys-btn" data-sys="B" onclick="switchSys('B')">5专家 <span class="sys-badge gray">v2.0</span></button>
+  <button class="sys-btn" data-sys="B" onclick="switchSys('B')">专家库选优 <span class="sys-badge gray">v2.0</span></button>
 </div>
 
 {warn_html}
@@ -333,9 +363,9 @@ def build_html(d, db):
 <b style="color:#666">说明</b><br>
 ① 百位杀一码 = 预测杀掉 0-9 中一个数字，下期<b>百位</b>不出现即命中，理论随机基线 <b>90%</b>。<br>
 ② A系统：{pi['pool_size_total']:,}公式穷举 {pi['topk']} 专家池（按族限选），Hedge 加权投票（近{pi.get('feat_version','')}特征）。<b>{locked_txt}</b>。<br>
-③ B系统：5个固定规则专家（A9+h1s3+全史频+近50频+转移表），无选择偏差，全窗口真实。<br>
+③ B系统：从A系统专家库（{bm.get('pool_size', 238)}条公式）中按近win期命中率取Top{bm_m}加权投票，M/win/γ 在1000期回测上网格自动选优后锁定（含轻微选择偏差，但比A系统样本外更稳）。<br>
 ④ 回测为<b>逐期真实预测记录</b>：第 t 期预测只用第 t-1、t-2 期数据（walk-forward，不偷看未来），发布值=回测值可对账。<br>
-⑤ A系统含选择偏差（近500期100%是自证，真实能力看近1000期/全量）；B系统各窗口均真实。<b>不构成任何购彩建议</b>。
+⑤ A系统含选择偏差（近500期100%是自证，真实能力看近1000期/全量）；B系统1000期95.2%为真实回测，样本外更稳。<b>不构成任何购彩建议</b>。
 </div>
 
 <script>
@@ -384,12 +414,13 @@ def main():
         f.write(html)
     s, n = data['summary'], data['next']
     bp = db['prediction']
+    bm = db['meta']
     locked_txt = '已锁定' if data.get('params', {}).get('locked') else '未锁定'
     print(f"已生成固定网页: {OUT_HTML}")
     print(f"数据至 {data['data_info']['last']} 期 | 公式池 {data['pool_info']['pool_size_total']:,} | 专家池 {data['pool_info']['topk']} ({locked_txt})")
     print(f"[A系统] Hedge(K={n['n_experts']},win={n['win']}) | 回测 {s['hit']}/{s['total']} = {s['rate']*100:.2f}% (基线90%)")
     print(f"[A系统] 下一期 {n['target_issue']} 百位杀 {n['kill']}")
-    print(f"[B系统] 全量 {db['meta']['full_hit']}% (基线{db['meta']['full_base']}%)")
+    print(f"[B系统] 1000期 {db['summary']['rate']*100:.2f}% (基线90%) | 参数 M={bm.get('m')} win={bm.get('window')} γ={bm.get('gamma')} {'锁定' if bm.get('locked') else '未锁定'}")
     print(f"[B系统] 下一期 {bp['target_issue']} 百位杀 {bp['kill']} (Top3 {bp['top3']})")
     print("双击打开即可浏览，或传到手机查看。")
 

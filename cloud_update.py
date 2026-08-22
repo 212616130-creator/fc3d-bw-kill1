@@ -113,9 +113,10 @@ def compute_result():
 
 
 def compute_engineB():
-    """B系统：5个低相关固定规则专家 Hedge 加权（无选择偏差，全窗口真实）"""
-    import hedge_engine
-    hedge_engine.run()
+    """B系统：从A系统专家库(238条)取TopM加权投票，1000期网格扫描选优后锁定（v2）"""
+    import hedge_engine_lib
+    hedge_engine_lib.run()
+    hedge_engine_lib.lock_best()
 
 
 def gen_html():
@@ -153,8 +154,8 @@ def main():
     log("[3/5] 参数解析 + [4/5] 500期回测 + 下期预测")
     compute_result()
 
-    # ---- [4.5/5] B系统 5专家引擎（双系统）----
-    log("[4.5/5] B系统 5专家引擎（双系统）")
+    # ---- [4.5/5] B系统 专家库选优引擎（双系统）----
+    log("[4.5/5] B系统 专家库选优引擎（双系统）")
     compute_engineB()
 
     # ---- [5/5] 生成 index.html ----
