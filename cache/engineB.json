@@ -1,9 +1,9 @@
 {
   "meta": {
-    "updated": "2026-10-31 03:06:14",
-    "total": 8790,
-    "latest_issue": "2026289",
-    "latest_number": "843",
+    "updated": "2026-11-01 02:23:33",
+    "total": 8791,
+    "latest_issue": "2026290",
+    "latest_number": "735",
     "algorithm": "B系统v2 · 专家库选优（238专家库 → Top14加权投票, win=100, γ=1.0）",
     "algo_version": "Bv2_lib1000",
     "pool_size": 238,
@@ -12,28 +12,28 @@
     "gamma": 1.0,
     "locked": true,
     "backtest_window": 1000,
-    "full_hit": 94.8,
+    "full_hit": 94.69999999999999,
     "full_base": 90.0
   },
   "prediction": {
-    "target_issue": "2026290",
-    "last_issue": "2026289",
-    "last_draw": "843",
-    "kill": 7,
+    "target_issue": "2026291",
+    "last_issue": "2026290",
+    "last_draw": "735",
+    "kill": 3,
     "top3": [
-      7,
-      9,
-      5
+      3,
+      1,
+      9
     ],
     "votes": [
       0.0,
-      0.97,
+      2.91,
+      0.96,
+      2.92,
       0.0,
-      0.97,
-      0.97,
-      2.9,
       0.98,
-      3.9,
+      2.9,
+      0.0,
       0.0,
       2.91
     ],
@@ -46,7 +46,7 @@
         "rank": 1,
         "name": "3*s3+1*mxmd+2*sbL10+4",
         "fam": "ABC",
-        "kill": 6,
+        "kill": 5,
         "weight": 0.98,
         "rate_win": 98.0,
         "rate_all": 95.8,
@@ -54,49 +54,49 @@
       },
       {
         "rank": 2,
-        "name": "2*bL+2*SL+3*sgL10+3",
-        "fam": "C",
-        "kill": 7,
-        "weight": 0.98,
-        "rate_win": 98.0,
-        "rate_all": 95.8,
-        "hits": 479
-      },
-      {
-        "rank": 3,
-        "name": "2*bL+2*S10L+3*sgL10+3",
-        "fam": "C",
-        "kill": 7,
-        "weight": 0.98,
-        "rate_win": 98.0,
-        "rate_all": 95.8,
-        "hits": 479
-      },
-      {
-        "rank": 4,
-        "name": "3*d13+2*oddn+3",
-        "fam": "B",
-        "kill": 7,
-        "weight": 0.98,
-        "rate_win": 98.0,
-        "rate_all": 94.8,
-        "hits": 474
-      },
-      {
-        "rank": 5,
         "name": "3*bsg2+2*mxmd+1*SP10+7",
         "fam": "B",
-        "kill": 9,
+        "kill": 3,
         "weight": 0.98,
         "rate_win": 98.0,
         "rate_all": 95.0,
         "hits": 475
       },
       {
+        "rank": 3,
+        "name": "2*bL+2*S10L+3*sgL10+3",
+        "fam": "C",
+        "kill": 6,
+        "weight": 0.97,
+        "rate_win": 97.0,
+        "rate_all": 95.8,
+        "hits": 479
+      },
+      {
+        "rank": 4,
+        "name": "2*bL+2*SL+3*sgL10+3",
+        "fam": "C",
+        "kill": 6,
+        "weight": 0.97,
+        "rate_win": 97.0,
+        "rate_all": 95.8,
+        "hits": 479
+      },
+      {
+        "rank": 5,
+        "name": "3*bp+2*mxmn+2*bsgL10+6",
+        "fam": "ABC",
+        "kill": 1,
+        "weight": 0.97,
+        "rate_win": 97.0,
+        "rate_all": 95.4,
+        "hits": 477
+      },
+      {
         "rank": 6,
         "name": "2*sh+2*sbL10+2*gsL10+9",
         "fam": "C",
-        "kill": 3,
+        "kill": 1,
         "weight": 0.97,
         "rate_win": 97.0,
         "rate_all": 95.4,
@@ -104,9 +104,9 @@
       },
       {
         "rank": 7,
-        "name": "3*bp+2*mxmn+2*bsgL10+6",
-        "fam": "ABC",
-        "kill": 4,
+        "name": "3*d12+3*bL+3*SPL10+3",
+        "fam": "BC",
+        "kill": 1,
         "weight": 0.97,
         "rate_win": 97.0,
         "rate_all": 95.4,
@@ -116,7 +116,7 @@
         "rank": 8,
         "name": "2*So+2*Sm3+2*gL+5",
         "fam": "ABC",
-        "kill": 1,
+        "kill": 3,
         "weight": 0.97,
         "rate_win": 97.0,
         "rate_all": 95.6,
@@ -134,19 +134,19 @@
       },
       {
         "rank": 10,
-        "name": "3*S+3*md+1*sum4+7",
-        "fam": "A",
-        "kill": 5,
+        "name": "3*d13+2*oddn+3",
+        "fam": "B",
+        "kill": 3,
         "weight": 0.97,
         "rate_win": 97.0,
-        "rate_all": 95.2,
-        "hits": 476
+        "rate_all": 94.8,
+        "hits": 474
       },
       {
         "rank": 11,
         "name": "3*S10+3*md+1*sum4+7",
         "fam": "A",
-        "kill": 5,
+        "kill": 9,
         "weight": 0.97,
         "rate_win": 97.0,
         "rate_all": 95.2,
@@ -154,19 +154,19 @@
       },
       {
         "rank": 12,
-        "name": "3*sum4+2*mnmd+2*mdmn+0",
-        "fam": "AB",
+        "name": "3*S+3*md+1*sum4+7",
+        "fam": "A",
         "kill": 9,
-        "weight": 0.96,
-        "rate_win": 96.0,
-        "rate_all": 95.6,
-        "hits": 478
+        "weight": 0.97,
+        "rate_win": 97.0,
+        "rate_all": 95.2,
+        "hits": 476
       },
       {
         "rank": 13,
-        "name": "2*s3+1*sum4+2*S3+6",
+        "name": "3*sum4+2*mnmd+2*mdmn+0",
         "fam": "AB",
-        "kill": 5,
+        "kill": 6,
         "weight": 0.96,
         "rate_win": 96.0,
         "rate_all": 95.6,
@@ -174,9 +174,9 @@
       },
       {
         "rank": 14,
-        "name": "1*s3+1*Sm3+3*dS+5",
-        "fam": "ABC",
-        "kill": 7,
+        "name": "2*s3+1*sum4+2*S3+6",
+        "fam": "AB",
+        "kill": 2,
         "weight": 0.96,
         "rate_win": 96.0,
         "rate_all": 95.6,
@@ -190,7 +190,7 @@
       "rank": 1,
       "name": "3*s3+1*mxmd+2*sbL10+4",
       "fam": "ABC",
-      "kill": 6,
+      "kill": 5,
       "weight": 0.98,
       "rate_win": 98.0,
       "rate_all": 95.8,
@@ -198,49 +198,49 @@
     },
     {
       "rank": 2,
-      "name": "2*bL+2*SL+3*sgL10+3",
-      "fam": "C",
-      "kill": 7,
-      "weight": 0.98,
-      "rate_win": 98.0,
-      "rate_all": 95.8,
-      "hits": 479
-    },
-    {
-      "rank": 3,
-      "name": "2*bL+2*S10L+3*sgL10+3",
-      "fam": "C",
-      "kill": 7,
-      "weight": 0.98,
-      "rate_win": 98.0,
-      "rate_all": 95.8,
-      "hits": 479
-    },
-    {
-      "rank": 4,
-      "name": "3*d13+2*oddn+3",
-      "fam": "B",
-      "kill": 7,
-      "weight": 0.98,
-      "rate_win": 98.0,
-      "rate_all": 94.8,
-      "hits": 474
-    },
-    {
-      "rank": 5,
       "name": "3*bsg2+2*mxmd+1*SP10+7",
       "fam": "B",
-      "kill": 9,
+      "kill": 3,
       "weight": 0.98,
       "rate_win": 98.0,
       "rate_all": 95.0,
       "hits": 475
     },
     {
+      "rank": 3,
+      "name": "2*bL+2*S10L+3*sgL10+3",
+      "fam": "C",
+      "kill": 6,
+      "weight": 0.97,
+      "rate_win": 97.0,
+      "rate_all": 95.8,
+      "hits": 479
+    },
+    {
+      "rank": 4,
+      "name": "2*bL+2*SL+3*sgL10+3",
+      "fam": "C",
+      "kill": 6,
+      "weight": 0.97,
+      "rate_win": 97.0,
+      "rate_all": 95.8,
+      "hits": 479
+    },
+    {
+      "rank": 5,
+      "name": "3*bp+2*mxmn+2*bsgL10+6",
+      "fam": "ABC",
+      "kill": 1,
+      "weight": 0.97,
+      "rate_win": 97.0,
+      "rate_all": 95.4,
+      "hits": 477
+    },
+    {
       "rank": 6,
       "name": "2*sh+2*sbL10+2*gsL10+9",
       "fam": "C",
-      "kill": 3,
+      "kill": 1,
       "weight": 0.97,
       "rate_win": 97.0,
       "rate_all": 95.4,
@@ -248,9 +248,9 @@
     },
     {
       "rank": 7,
-      "name": "3*bp+2*mxmn+2*bsgL10+6",
-      "fam": "ABC",
-      "kill": 4,
+      "name": "3*d12+3*bL+3*SPL10+3",
+      "fam": "BC",
+      "kill": 1,
       "weight": 0.97,
       "rate_win": 97.0,
       "rate_all": 95.4,
@@ -260,7 +260,7 @@
       "rank": 8,
       "name": "2*So+2*Sm3+2*gL+5",
       "fam": "ABC",
-      "kill": 1,
+      "kill": 3,
       "weight": 0.97,
       "rate_win": 97.0,
       "rate_all": 95.6,
@@ -278,19 +278,19 @@
     },
     {
       "rank": 10,
-      "name": "3*S+3*md+1*sum4+7",
-      "fam": "A",
-      "kill": 5,
+      "name": "3*d13+2*oddn+3",
+      "fam": "B",
+      "kill": 3,
       "weight": 0.97,
       "rate_win": 97.0,
-      "rate_all": 95.2,
-      "hits": 476
+      "rate_all": 94.8,
+      "hits": 474
     },
     {
       "rank": 11,
       "name": "3*S10+3*md+1*sum4+7",
       "fam": "A",
-      "kill": 5,
+      "kill": 9,
       "weight": 0.97,
       "rate_win": 97.0,
       "rate_all": 95.2,
@@ -298,19 +298,19 @@
     },
     {
       "rank": 12,
-      "name": "3*sum4+2*mnmd+2*mdmn+0",
-      "fam": "AB",
+      "name": "3*S+3*md+1*sum4+7",
+      "fam": "A",
       "kill": 9,
-      "weight": 0.96,
-      "rate_win": 96.0,
-      "rate_all": 95.6,
-      "hits": 478
+      "weight": 0.97,
+      "rate_win": 97.0,
+      "rate_all": 95.2,
+      "hits": 476
     },
     {
       "rank": 13,
-      "name": "2*s3+1*sum4+2*S3+6",
+      "name": "3*sum4+2*mnmd+2*mdmn+0",
       "fam": "AB",
-      "kill": 5,
+      "kill": 6,
       "weight": 0.96,
       "rate_win": 96.0,
       "rate_all": 95.6,
@@ -318,9 +318,9 @@
     },
     {
       "rank": 14,
-      "name": "1*s3+1*Sm3+3*dS+5",
-      "fam": "ABC",
-      "kill": 7,
+      "name": "2*s3+1*sum4+2*S3+6",
+      "fam": "AB",
+      "kill": 2,
       "weight": 0.96,
       "rate_win": 96.0,
       "rate_all": 95.6,
@@ -330,23 +330,23 @@
   "window_stats": {
     "100": {
       "n": 100,
-      "hit": 90,
-      "pct": 90.0
+      "hit": 89,
+      "pct": 89.0
     },
     "200": {
       "n": 200,
-      "hit": 189,
-      "pct": 94.5
+      "hit": 188,
+      "pct": 94.0
     },
     "500": {
       "n": 500,
-      "hit": 487,
-      "pct": 97.4
+      "hit": 486,
+      "pct": 97.2
     },
     "1000": {
       "n": 1000,
-      "hit": 948,
-      "pct": 94.8
+      "hit": 947,
+      "pct": 94.7
     }
   },
   "best_scan": {
@@ -359,6 +359,32 @@
     "locked": true
   },
   "rows": [
+    {
+      "issue": "2026290",
+      "num": "735",
+      "kill": 7,
+      "hit": false,
+      "top3": [
+        7,
+        9,
+        5
+      ],
+      "n_exp": 14,
+      "votes": [
+        0.0,
+        0.97,
+        0.0,
+        0.97,
+        0.97,
+        2.9,
+        0.98,
+        3.9,
+        0.0,
+        2.91
+      ],
+      "fname": "3*s3+1*mxmd+2*sbL10+4",
+      "fam": "ABC"
+    },
     {
       "issue": "2026289",
       "num": "843",
@@ -26332,38 +26358,12 @@
       ],
       "fname": "2*s3+1*sum4+2*S3+6",
       "fam": "AB"
-    },
-    {
-      "issue": "2023337",
-      "num": "862",
-      "kill": 5,
-      "hit": true,
-      "top3": [
-        5,
-        9,
-        3
-      ],
-      "n_exp": 14,
-      "votes": [
-        0.0,
-        0.95,
-        0.96,
-        1.9,
-        0.0,
-        4.78,
-        0.94,
-        0.94,
-        0.0,
-        2.84
-      ],
-      "fname": "2*s3+1*sum4+2*S3+6",
-      "fam": "AB"
     }
   ],
   "summary": {
-    "hit": 948,
+    "hit": 947,
     "total": 1000,
-    "rate": 0.948,
+    "rate": 0.947,
     "baseline": 0.9,
     "max_win": 253,
     "max_lose": 2
